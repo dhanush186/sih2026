@@ -13,18 +13,45 @@ analyzeButton.addEventListener("click", function () {
         return;
     }
 
-    const fileName = audioFile.files[0].name;
-
     result.innerHTML = `
-        <h3>Selected Voice</h3>
-
-        <p>
-            <strong>File:</strong> ${fileName}
-        </p>
-
-        <p>
-            Ready for analysis.
-        </p>
+        <p>Analyzing voice...</p>
     `;
+
+    setTimeout(function () {
+
+        const fileName = audioFile.files[0].name;
+
+        result.innerHTML = `
+
+            <h3>Analysis Result</h3>
+
+            <p>
+                <strong>File:</strong>
+                ${fileName}
+            </p>
+
+            <p>
+                <strong>AI Probability:</strong>
+                87%
+            </p>
+
+            <p>
+                <strong>Speaker Match:</strong>
+                92%
+            </p>
+
+            <p>
+                <strong>Risk Score:</strong>
+                78/100
+            </p>
+
+            <p>
+                <strong>Risk Level:</strong>
+                HIGH
+            </p>
+
+        `;
+
+    }, 2000);
 
 });
