@@ -7,7 +7,7 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Voice Deepfake Detection</title>
+    <title>Voice Analysis</title>
 
     <link rel="stylesheet" href="css/style.css">
 
@@ -19,7 +19,7 @@
 
         <h1>Voice Deepfake Detection</h1>
 
-        <p>AI-Powered Voice Security</p>
+        <p>Real-Time Voice Analysis</p>
 
     </header>
 
@@ -39,23 +39,28 @@
 
     <main>
 
-        <h2>Voice Analysis</h2>
+        <h2>Analyze Voice</h2>
 
         <p>
-            Upload a voice recording to analyze whether
+            Upload a voice recording to check whether
             it may be AI-generated or manipulated.
         </p>
 
 
         <section>
 
-            <h3>Upload Voice Recording</h3>
+            <h3>Select Voice Recording</h3>
 
             <input
                 type="file"
                 id="audioFile"
                 accept="audio/*"
             >
+
+            <p>
+                Supported audio files can be selected
+                from your computer.
+            </p>
 
         </section>
 
@@ -71,6 +76,9 @@
         <div id="result"></div>
 
     </main>
+
+
+    <script src="js/api.js" defer></script>
 
 </body>
 
