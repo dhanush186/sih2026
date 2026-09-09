@@ -1,21 +1,30 @@
+* {
+    box-sizing: border-box;
+}
+
 body {
     font-family: Arial, sans-serif;
     margin: 0;
-    padding: 0;
     background-color: #f4f6f8;
+    color: #222;
 }
 
 header {
-    padding: 20px;
+    padding: 30px 20px;
     text-align: center;
     background-color: #222;
     color: white;
+}
+
+header h1 {
+    margin: 0;
 }
 
 nav {
     padding: 15px;
     text-align: center;
     background-color: white;
+    border-bottom: 1px solid #ddd;
 }
 
 nav a {
@@ -25,8 +34,14 @@ nav a {
     font-weight: bold;
 }
 
+nav a:hover {
+    text-decoration: underline;
+}
+
 main {
-    padding: 30px;
+    max-width: 1100px;
+    margin: auto;
+    padding: 40px 20px;
 }
 
 .statistics {
@@ -37,35 +52,57 @@ main {
 
 .card {
     background-color: white;
-    padding: 20px;
-    border-radius: 10px;
+    padding: 25px;
+    border-radius: 12px;
     text-align: center;
+    border: 1px solid #ddd;
 }
 
 .card h3 {
     margin-bottom: 10px;
+    color: #555;
 }
 
 .card p {
-    font-size: 28px;
+    font-size: 30px;
     font-weight: bold;
+    margin: 0;
 }
 
-.analysis {
-    background-color: white;
-    margin-top: 30px;
-    padding: 25px;
-    border-radius: 10px;
-}
-
+.analysis,
 .risk-result {
     background-color: white;
     margin-top: 30px;
     padding: 25px;
-    border-radius: 10px;
+    border-radius: 12px;
+    border: 1px solid #ddd;
 }
 
 .risk {
     font-size: 30px;
     font-weight: bold;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 800px) {
+
+    .statistics {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+@media (max-width: 500px) {
+
+    .statistics {
+        grid-template-columns: 1fr;
+    }
+
+    nav a {
+        display: block;
+        margin: 10px;
+    }
+
 }

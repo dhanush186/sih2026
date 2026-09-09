@@ -7,7 +7,7 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Voice Analysis</title>
+    <title>Voice Deepfake Detection</title>
 
     <link rel="stylesheet" href="css/style.css">
 
@@ -17,39 +17,63 @@
 
     <header>
 
-        <h1>Voice Deepfake Detection</h1>
+        <div class="header-content">
 
-        <p>Real-Time Voice Analysis</p>
+            <h1>Voice Deepfake Detection</h1>
+
+            <p>AI-Powered Voice Security System</p>
+
+        </div>
 
     </header>
 
 
     <nav>
 
-        <a href="index.html">Voice Analysis</a>
+        <div class="nav-container">
 
-        <a href="dashboard.html">Dashboard</a>
+            <a href="index.html" class="active">
+                Voice Analysis
+            </a>
 
-        <a href="history.html">History</a>
+            <a href="dashboard.html">
+                Dashboard
+            </a>
 
-        <a href="alerts.html">Alerts</a>
+            <a href="history.html">
+                History
+            </a>
+
+            <a href="alerts.html">
+                Alerts
+            </a>
+
+        </div>
 
     </nav>
 
 
     <main>
 
-        <h2>Analyze Voice</h2>
+        <section class="hero">
 
-        <p>
-            Upload a voice recording to check whether
-            it may be AI-generated or manipulated.
-        </p>
+            <h2>Analyze a Voice Recording</h2>
+
+            <p>
+                Upload a voice recording to check for
+                possible AI-generated or manipulated audio.
+            </p>
+
+        </section>
 
 
-        <section>
+        <section class="upload-card">
 
-            <h3>Select Voice Recording</h3>
+            <h3>🎤 Voice Recording</h3>
+
+            <p>
+                Select an audio file from your computer.
+            </p>
 
             <input
                 type="file"
@@ -57,28 +81,35 @@
                 accept="audio/*"
             >
 
-            <p>
-                Supported audio files can be selected
-                from your computer.
-            </p>
+            <button id="analyzeButton">
+                Analyze Voice
+            </button>
 
         </section>
 
 
-        <br>
+        <section id="result" class="result-card">
 
-
-        <button id="analyzeButton">
-            Analyze Voice
-        </button>
-
-
-        <div id="result"></div>
+        </section>
 
     </main>
 
 
-    <script src="js/api.js" defer></script>
+    <footer>
+
+        <p>
+            Voice Deepfake Detection System
+        </p>
+
+        <p>
+            SIH 2026 Project
+        </p>
+
+    </footer>
+
+
+    <script src="js/config.js" defer></script>
+<script src="js/api.js" defer></script>
 
 </body>
 
