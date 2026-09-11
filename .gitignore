@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Dataset/audio files
+*.wav
+*.mp3
+*.flac
+*.ogg
+
+# Generated ML caches
+Data Engineer/models/wav2vec_cache/
+Data Engineer/models/speaker_verification/
+
+# Local caches
+.kaggle/
+kaggle_cache/
+.cache/
+
+# IDE
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store

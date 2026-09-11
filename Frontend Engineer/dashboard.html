@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Partial client-side mitigation (checklist #18 Add security headers).
+       Real security headers (HSTS, X-Frame-Options, X-Content-Type-Options,
+       a stricter CSP) must still be set by the server/CDN that serves this
+       site — a <meta> tag cannot set most of them. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'self' http://localhost:8000 https:; base-uri 'self'; frame-ancestors 'none'">
+  <title>Voice Deepfake Detection Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="header-text">
+        <h1>Voice Deepfake Detection</h1>
+        <p>AI-Powered Voice Security Dashboard</p>
+      </div>
+    </div>
+  </header>
+
+  <nav class="site-nav" aria-label="Primary">
+    <div class="nav-inner">
+      <a href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h3l2-7 4 14 3-10 2 3h4"/></svg>
+        Voice Analysis
+      </a>
+      <a href="dashboard.html" class="active" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="history.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        History
+      </a>
+      <a href="alerts.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        Alerts
+      </a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="eyebrow-page">
+      <h2>Dashboard</h2>
+    </div>
+
+    <section class="statistics">
+      <div class="stat-tile panel">
+        <div class="stat-icon" style="color:var(--signal)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 12h3l2-7 4 14 3-10 2 3h4"/></svg>
+        </div>
+        <p class="stat-value">120</p>
+        <h3>Total calls</h3>
+      </div>
+
+      <div class="stat-tile panel">
+        <div class="stat-icon" style="color:var(--warn)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 9v4"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 17h.01"/></svg>
+        </div>
+        <p class="stat-value">18</p>
+        <h3>Suspicious calls</h3>
+      </div>
+
+      <div class="stat-tile panel">
+        <div class="stat-icon" style="color:var(--danger)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </div>
+        <p class="stat-value">5</p>
+        <h3>Critical alerts</h3>
+      </div>
+
+      <div class="stat-tile panel">
+        <div class="stat-icon" style="color:var(--signal)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        </div>
+        <p class="stat-value">87%</p>
+        <h3>AI probability</h3>
+      </div>
+    </section>
+
+    <section class="analysis panel">
+      <h2>Current analysis</h2>
+      <div class="meters" id="currentAnalysisMeters"></div>
+    </section>
+
+    <section class="risk-result panel risk-high">
+      <div class="risk-result-head">
+        <h2>Risk level</h2>
+        <span class="badge badge-high">HIGH RISK</span>
+      </div>
+      <p>The analyzed voice shows suspicious characteristics.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Voice Deepfake Detection System</p>
+    <p>SIH 2026 Project</p>
+  </footer>
+
+  <script src="js/ui.js" defer></script>
+  <script src="js/dashboard.js" defer></script>
+
+</body>
+</html>

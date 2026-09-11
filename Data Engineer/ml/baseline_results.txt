@@ -1,0 +1,45 @@
+DEEPFAKE VOICE DETECTION - CNN BASELINE
+
+Dataset:
+Fake-or-Real (FoR), for-original
+
+Training:
+5000 samples
+2500 REAL
+2500 FAKE
+
+Validation:
+1000 samples
+500 REAL
+500 FAKE
+
+Epochs:
+3
+
+Best Validation Accuracy:
+98.10%
+
+Independent Test Results:
+Accuracy: 64.89%
+Precision: 87.19%
+Recall: 36.75%
+F1 Score: 51.71%
+
+Confusion Matrix:
+
+                 Predicted
+                 REAL    FAKE
+Actual REAL       2136     128
+Actual FAKE       1499     871
+
+Model:
+Baseline CNN on 64-bin Mel Spectrograms
+
+Checkpoint:
+D:\sih2026\Data Engineer\models\deepfake_cnn_baseline.pth
+
+Conclusion:
+The baseline CNN successfully learns the training/validation data,
+but generalization to the independent test set is limited.
+The model is retained as the baseline for comparison with stronger
+pretrained audio models.
