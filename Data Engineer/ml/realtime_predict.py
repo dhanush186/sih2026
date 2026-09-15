@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 
 import librosa
 import numpy as np
@@ -21,44 +22,6 @@ CHUNK_SAMPLES = (
     SAMPLE_RATE * CHUNK_DURATION
 )
 
-# ------------------------------------------------------------
-# Demo audio
-# ------------------------------------------------------------
-
-AUDIO_PATH = Path(
-    r"D:\kaggle_cache\datasets"
-    r"\mohammedabdeldayem"
-    r"\the-fake-or-real-dataset"
-    r"\versions\2"
-    r"\for-original"
-    r"\for-original"
-    r"\testing"
-    r"\fake"
-    r"\file1269.wav"
-)
-
-# ------------------------------------------------------------
-# Trusted speaker reference
-#
-# Set this to None to disable speaker verification.
-# ------------------------------------------------------------
-
-REFERENCE_AUDIO = Path(
-    r"D:\kaggle_cache\datasets"
-    r"\mohammedabdeldayem"
-    r"\the-fake-or-real-dataset"
-    r"\versions\2"
-    r"\for-original"
-    r"\for-original"
-    r"\testing"
-    r"\real"
-    r"\file1.wav"
-)
-
-# Example:
-# REFERENCE_AUDIO = None
-
-
 DEVICE = torch.device(
     "cuda" if torch.cuda.is_available()
     else "cpu"
@@ -66,10 +29,22 @@ DEVICE = torch.device(
 
 
 # ============================================================
-# LOAD FULL AUDIO
+# AUDIO PATH
 # ============================================================
 
-def load_full_audio(audio_path):
+def get_audio_path():
+
+    if len(sys.argv) < 2:
+
+        raise ValueError(
+            "Please provide an audio file path.\n\n"
+            "Example:\n"
+            r'python realtime_predict.py "D:\audio\call.wav"'
+        )
+
+    audio_path = Path(
+        sys.argv[1]
+    )
 
     if not audio_path.exists():
 
@@ -83,11 +58,37 @@ def load_full_audio(audio_path):
             f"Path is not a file:\n{audio_path}"
         )
 
+    allowed_extensions = {
+        ".wav",
+        ".mp3",
+    }
+
+    extension = (
+        audio_path.suffix
+        .lower()
+        .strip()
+    )
+
+    if extension not in allowed_extensions:
+
+        raise ValueError(
+            "Only WAV and MP3 files are supported."
+        )
+
     if audio_path.stat().st_size == 0:
 
         raise ValueError(
             f"Audio file is empty:\n{audio_path}"
         )
+
+    return audio_path
+
+
+# ============================================================
+# LOAD FULL AUDIO
+# ============================================================
+
+def load_full_audio(audio_path):
 
     audio, _ = librosa.load(
         audio_path,
@@ -125,7 +126,7 @@ def create_chunks(audio):
         chunk = audio[start:end]
 
         # ----------------------------------------------------
-        # Pad final chunk to exactly 2 seconds
+        # Pad final chunk
         # ----------------------------------------------------
 
         if len(chunk) < CHUNK_SAMPLES:
@@ -176,24 +177,13 @@ def analyze_chunk(
             input_values=input_values
         )
 
-        # Shape:
-        # [1, time, 768]
-
         hidden_states = (
             outputs.last_hidden_state
         )
 
-        # ----------------------------------------------------
-        # Mean pooling
-        # ----------------------------------------------------
-
         embedding = (
             hidden_states.mean(dim=1)
         )
-
-        # ----------------------------------------------------
-        # Classification
-        # ----------------------------------------------------
 
         logits = classifier(
             embedding
@@ -219,7 +209,7 @@ def analyze_chunk(
 
 
 # ============================================================
-# SPEAKER VERIFICATION
+# OPTIONAL SPEAKER VERIFICATION
 # ============================================================
 
 def verify_trusted_speaker(
@@ -227,32 +217,16 @@ def verify_trusted_speaker(
     test_audio
 ):
 
-    # --------------------------------------------------------
-    # Speaker verification disabled
-    # --------------------------------------------------------
-
     if reference_audio is None:
 
-        print(
-            "Trusted speaker reference: DISABLED"
-        )
-
         return None
-
-    # --------------------------------------------------------
-    # Check reference
-    # --------------------------------------------------------
 
     if not reference_audio.exists():
 
         raise FileNotFoundError(
-            "Trusted speaker reference not found:\n"
+            f"Trusted speaker reference not found:\n"
             f"{reference_audio}"
         )
-
-    # --------------------------------------------------------
-    # Load speaker model
-    # --------------------------------------------------------
 
     print()
     print("Loading speaker verification model...")
@@ -260,13 +234,9 @@ def verify_trusted_speaker(
     verifier = SpeakerVerifier()
 
     print(
-        "Comparing trusted reference "
-        "with call audio..."
+        "Comparing trusted speaker "
+        "with audio..."
     )
-
-    # --------------------------------------------------------
-    # Compare speakers
-    # --------------------------------------------------------
 
     result = verifier.compare(
         reference_audio,
@@ -281,23 +251,17 @@ def verify_trusted_speaker(
         result["same_speaker"]
     )
 
-    # --------------------------------------------------------
-    # Display
-    # --------------------------------------------------------
-
     print()
     print("=" * 60)
     print("SPEAKER VERIFICATION")
     print("=" * 60)
 
     print(
-        f"Reference: "
-        f"{reference_audio.name}"
+        f"Reference: {reference_audio.name}"
     )
 
     print(
-        f"Call audio: "
-        f"{test_audio.name}"
+        f"Audio: {test_audio.name}"
     )
 
     print(
@@ -330,11 +294,28 @@ def main():
     )
 
     # ========================================================
-    # 1. LOAD DEEPFAKE MODELS
+    # 1. GET AUDIO FILE
+    # ========================================================
+
+    audio_path = get_audio_path()
+
+    print()
+    print(
+        f"Audio file: {audio_path.name}"
+    )
+
+    print(
+        f"Full path: {audio_path}"
+    )
+
+    # ========================================================
+    # 2. LOAD MODELS
     # ========================================================
 
     print()
-    print("Loading deepfake detection models...")
+    print(
+        "Loading deepfake detection models..."
+    )
 
     (
         processor,
@@ -347,16 +328,11 @@ def main():
     )
 
     # ========================================================
-    # 2. LOAD AUDIO
+    # 3. LOAD AUDIO
     # ========================================================
 
-    print()
-    print(
-        f"Audio file: {AUDIO_PATH.name}"
-    )
-
     audio = load_full_audio(
-        AUDIO_PATH
+        audio_path
     )
 
     duration = (
@@ -368,31 +344,33 @@ def main():
     )
 
     # ========================================================
-    # 3. SPEAKER VERIFICATION
+    # 4. SPEAKER VERIFICATION
     # ========================================================
-
-    speaker_similarity = (
-        verify_trusted_speaker(
-            REFERENCE_AUDIO,
-            AUDIO_PATH
-        )
-    )
+    #
+    # Disabled by default.
+    #
+    # Later we can accept a second command-line argument:
+    #
+    # python realtime_predict.py call.wav reference.wav
+    #
+    # For now:
+    #
+    speaker_similarity = None
 
     # ========================================================
-    # 4. CREATE CHUNKS
+    # 5. CREATE CHUNKS
     # ========================================================
 
     chunks = create_chunks(
         audio
     )
 
-    print()
     print(
         f"2-second chunks: {len(chunks)}"
     )
 
     # ========================================================
-    # 5. INITIALIZE RISK ENGINE
+    # 6. RISK ENGINE
     # ========================================================
 
     risk_engine = RiskEngine()
@@ -400,7 +378,7 @@ def main():
     fake_probabilities = []
 
     # ========================================================
-    # 6. ANALYZE CHUNKS
+    # 7. CHUNK ANALYSIS
     # ========================================================
 
     print()
@@ -418,9 +396,9 @@ def main():
             * CHUNK_DURATION
         )
 
-        end_time = (
-            start_time
-            + CHUNK_DURATION
+        end_time = min(
+            start_time + CHUNK_DURATION,
+            duration
         )
 
         # ----------------------------------------------------
@@ -442,7 +420,7 @@ def main():
         )
 
         # ----------------------------------------------------
-        # Risk engine
+        # Risk calculation
         # ----------------------------------------------------
 
         risk_result = (
@@ -452,41 +430,6 @@ def main():
             )
         )
 
-        risk_level = (
-            risk_result["risk_level"]
-        )
-
-        risk_score = (
-            risk_result["risk_score"]
-        )
-
-        rolling_fake_probability = (
-            risk_result[
-                "average_fake_probability"
-            ]
-        )
-
-        high_evidence = (
-            risk_result["high_evidence"]
-        )
-
-        # ----------------------------------------------------
-        # Speaker evidence
-        # ----------------------------------------------------
-
-        speaker_info = ""
-
-        if speaker_similarity is not None:
-
-            speaker_info = (
-                f" | Speaker: "
-                f"{speaker_similarity:.4f}"
-            )
-
-        # ----------------------------------------------------
-        # Display chunk result
-        # ----------------------------------------------------
-
         print(
             f"{start_time:05.1f}s - "
             f"{end_time:05.1f}s | "
@@ -495,19 +438,24 @@ def main():
             f"Real: "
             f"{real_probability * 100:6.2f}% | "
             f"Rolling: "
-            f"{rolling_fake_probability * 100:6.2f}% | "
+            f"{risk_result['average_fake_probability'] * 100:6.2f}% | "
             f"Risk: "
-            f"{risk_level:6s} | "
+            f"{risk_result['risk_level']:6s} | "
             f"Score: "
-            f"{risk_score:6.2f} | "
+            f"{risk_result['risk_score']:6.2f} | "
             f"High evidence: "
-            f"{high_evidence}"
-            f"{speaker_info}"
+            f"{risk_result['high_evidence']}"
         )
 
     # ========================================================
-    # 7. FINAL SUMMARY
+    # 8. FINAL RISK
     # ========================================================
+
+    final_risk = (
+        risk_engine.get_risk(
+            speaker_similarity=speaker_similarity
+        )
+    )
 
     average_fake_probability = (
         sum(fake_probabilities)
@@ -518,40 +466,29 @@ def main():
         fake_probabilities
     )
 
-    # --------------------------------------------------------
-    # IMPORTANT:
-    # Use the same trusted speaker information for the final
-    # risk calculation as we used for each chunk.
-    # --------------------------------------------------------
-
-    final_risk = (
-        risk_engine.get_risk(
-            speaker_similarity=speaker_similarity
-        )
-    )
-
-    overall_risk = (
-        final_risk["risk_level"]
-    )
-
-    overall_risk_score = (
-        final_risk["risk_score"]
-    )
-
-    final_rolling_probability = (
-        final_risk[
-            "average_fake_probability"
-        ]
-    )
-
     # ========================================================
-    # DISPLAY SUMMARY
+    # 9. SUMMARY
     # ========================================================
 
     print()
     print("=" * 60)
     print("REAL-TIME ANALYSIS SUMMARY")
     print("=" * 60)
+
+    print(
+        f"Audio file: "
+        f"{audio_path.name}"
+    )
+
+    print(
+        f"Duration: "
+        f"{duration:.2f} seconds"
+    )
+
+    print(
+        f"Chunks analyzed: "
+        f"{len(chunks)}"
+    )
 
     print(
         f"Average fake probability: "
@@ -565,35 +502,17 @@ def main():
 
     print(
         f"Final rolling fake probability: "
-        f"{final_rolling_probability * 100:.2f}%"
+        f"{final_risk['average_fake_probability'] * 100:.2f}%"
     )
-
-    if speaker_similarity is not None:
-
-        print(
-            f"Speaker similarity: "
-            f"{speaker_similarity:.4f}"
-        )
-
-        print(
-            f"Speaker mismatch score: "
-            f"{final_risk['speaker_mismatch_score']:.2f}%"
-        )
-
-    else:
-
-        print(
-            "Speaker verification: NOT USED"
-        )
 
     print(
         f"Overall risk score: "
-        f"{overall_risk_score:.2f}/100"
+        f"{final_risk['risk_score']:.2f}/100"
     )
 
     print(
         f"Overall risk level: "
-        f"{overall_risk}"
+        f"{final_risk['risk_level']}"
     )
 
     print(
@@ -606,17 +525,13 @@ def main():
         f"{final_risk['session_alert']}"
     )
 
-    # ========================================================
-    # RECOMMENDATION
-    # ========================================================
-
-    if overall_risk == "HIGH":
+    if final_risk["risk_level"] == "HIGH":
 
         print(
             "Independent verification recommended."
         )
 
-    elif overall_risk == "MEDIUM":
+    elif final_risk["risk_level"] == "MEDIUM":
 
         print(
             "Additional verification recommended "
@@ -638,4 +553,16 @@ def main():
 # ============================================================
 
 if __name__ == "__main__":
-    main()
+
+    try:
+
+        main()
+
+    except Exception as error:
+
+        print()
+        print("=" * 60)
+        print("ERROR")
+        print("=" * 60)
+        print(error)
+        print("=" * 60)

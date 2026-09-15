@@ -2,9 +2,6 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
-
-from transformers import Wav2Vec2Processor, Wav2Vec2Model
 
 from sklearn.metrics import (
     accuracy_score,
@@ -12,36 +9,37 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     confusion_matrix,
-    classification_report
+    classification_report,
 )
-
-from dataset import FakeRealDataset
+from torch.utils.data import DataLoader, TensorDataset
+from transformers import Wav2Vec2Processor, Wav2Vec2Model
 
 
 # ============================================================
 # CONFIGURATION
 # ============================================================
 
-BATCH_SIZE = 32
+MODEL_NAME = "facebook/wav2vec2-base"
 
 MODEL_PATH = Path(
     r"D:\sih2026\Data Engineer\models"
-    r"\wav2vec2_deepfake_classifier.pth"
+    r"\wav2vec2_deepfake_classifier_full.pth"
 )
 
-CACHE_DIR = Path(
+CACHE_PATH = Path(
     r"D:\sih2026\Data Engineer\models"
-    r"\wav2vec_cache"
-)
-
-TEST_CACHE_PATH = (
-    CACHE_DIR / "testing_embeddings.pt"
+    r"\wav2vec_cache\testing_embeddings.pt"
 )
 
 DEVICE = torch.device(
     "cuda" if torch.cuda.is_available()
     else "cpu"
 )
+
+BATCH_SIZE = 32
+
+# Selected using the validation split
+CLASSIFICATION_THRESHOLD = 0.55
 
 
 # ============================================================
@@ -55,17 +53,12 @@ class EmbeddingClassifier(nn.Module):
         super().__init__()
 
         self.network = nn.Sequential(
-
             nn.Linear(768, 256),
-
             nn.ReLU(),
-
             nn.Dropout(0.3),
 
             nn.Linear(256, 64),
-
             nn.ReLU(),
-
             nn.Dropout(0.2),
 
             nn.Linear(64, 2)
@@ -77,153 +70,175 @@ class EmbeddingClassifier(nn.Module):
 
 
 # ============================================================
-# LOAD AUDIO
+# LOAD TEST EMBEDDINGS
 # ============================================================
 
-def load_audio(path):
+def load_testing_embeddings():
 
-    import librosa
-    import numpy as np
+    if not CACHE_PATH.exists():
 
-    audio, _ = librosa.load(
-        path,
-        sr=16000,
-        mono=True,
-        duration=2
+        raise FileNotFoundError(
+            f"Testing embeddings not found:\n"
+            f"{CACHE_PATH}\n\n"
+            f"Run the embedding-generation step first."
+        )
+
+    print(
+        "\nLoading cached testing embeddings..."
     )
 
-    target_length = 32000
+    data = torch.load(
+        CACHE_PATH,
+        map_location="cpu"
+    )
 
-    if len(audio) < target_length:
+    embeddings = data["embeddings"]
+    labels = data["labels"]
 
-        audio = np.pad(
-            audio,
-            (0, target_length - len(audio)),
-            mode="constant"
+    print(
+        f"Testing embedding shape: "
+        f"{embeddings.shape}"
+    )
+
+    print(
+        f"Testing label shape: "
+        f"{labels.shape}"
+    )
+
+    return embeddings, labels
+
+
+# ============================================================
+# LOAD CLASSIFIER
+# ============================================================
+
+def load_classifier():
+
+    if not MODEL_PATH.exists():
+
+        raise FileNotFoundError(
+            f"Classifier model not found:\n"
+            f"{MODEL_PATH}"
         )
 
-    else:
+    print(
+        "\nCreating classifier..."
+    )
 
-        audio = audio[:target_length]
+    classifier = EmbeddingClassifier()
 
-    return audio.astype("float32")
+    state_dict = torch.load(
+        MODEL_PATH,
+        map_location=DEVICE
+    )
+
+    classifier.load_state_dict(
+        state_dict
+    )
+
+    classifier = classifier.to(
+        DEVICE
+    )
+
+    classifier.eval()
+
+    print(
+        "Model loaded successfully."
+    )
+
+    return classifier
 
 
 # ============================================================
-# EXTRACT TEST EMBEDDINGS
+# RUN PREDICTIONS
 # ============================================================
 
-def extract_test_embeddings(
-    dataset,
-    processor,
-    encoder
+def run_predictions(
+    embeddings,
+    labels,
+    classifier
 ):
 
-    if TEST_CACHE_PATH.exists():
+    dataset = TensorDataset(
+        embeddings,
+        labels
+    )
 
-        print()
-        print(
-            "Loading cached testing embeddings..."
-        )
+    loader = DataLoader(
+        dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False
+    )
 
-        cached = torch.load(
-            TEST_CACHE_PATH,
-            map_location="cpu"
-        )
-
-        return (
-            cached["embeddings"],
-            cached["labels"]
-        )
+    all_predictions = []
+    all_labels = []
+    all_fake_probabilities = []
 
     print()
     print(
-        "Extracting Wav2Vec2 embeddings "
-        "for testing..."
+        "Running predictions..."
     )
-
-    embeddings = []
-    labels = []
-
-    encoder.eval()
 
     with torch.no_grad():
 
-        for count, (path, label) in enumerate(
-            dataset.files,
-            start=1
-        ):
+        for batch_index, (
+            batch_embeddings,
+            batch_labels
+        ) in enumerate(loader):
 
-            audio = load_audio(path)
-
-            inputs = processor(
-                audio,
-                sampling_rate=16000,
-                return_tensors="pt"
+            batch_embeddings = (
+                batch_embeddings.to(DEVICE)
             )
 
-            input_values = (
-                inputs.input_values
-                .to(DEVICE)
+            outputs = classifier(
+                batch_embeddings
             )
 
-            outputs = encoder(
-                input_values=input_values
+            probabilities = torch.softmax(
+                outputs,
+                dim=1
             )
 
-            hidden_states = (
-                outputs.last_hidden_state
-            )
-
-            embedding = (
-                hidden_states
-                .mean(dim=1)
-                .squeeze(0)
+            fake_probabilities = (
+                probabilities[:, 1]
                 .cpu()
+                .numpy()
             )
 
-            embeddings.append(
-                embedding
+            # ------------------------------------------------
+            # Explicit 0.50 probability threshold
+            # ------------------------------------------------
+
+            predictions = (
+                fake_probabilities
+                >= CLASSIFICATION_THRESHOLD
+            ).astype(int)
+
+            all_predictions.extend(
+                predictions.tolist()
             )
 
-            labels.append(label)
+            all_fake_probabilities.extend(
+                fake_probabilities.tolist()
+            )
 
-            if count % 100 == 0 or count == len(dataset):
+            all_labels.extend(
+                batch_labels.numpy().tolist()
+            )
+
+            if batch_index % 20 == 0:
 
                 print(
-                    f"Processed "
-                    f"{count}/{len(dataset)}"
+                    f"Processed batch "
+                    f"{batch_index + 1}/"
+                    f"{len(loader)}"
                 )
 
-    embeddings = torch.stack(
-        embeddings
+    return (
+        all_predictions,
+        all_labels,
+        all_fake_probabilities
     )
-
-    labels = torch.tensor(
-        labels,
-        dtype=torch.long
-    )
-
-    CACHE_DIR.mkdir(
-        parents=True,
-        exist_ok=True
-    )
-
-    torch.save(
-        {
-            "embeddings": embeddings,
-            "labels": labels
-        },
-        TEST_CACHE_PATH
-    )
-
-    print()
-    print(
-        "Cached testing embeddings saved to:"
-    )
-    print(TEST_CACHE_PATH)
-
-    return embeddings, labels
 
 
 # ============================================================
@@ -233,199 +248,51 @@ def extract_test_embeddings(
 def main():
 
     print("=" * 60)
-    print("WAV2VEC2 DEEPFAKE DETECTION - EVALUATION")
+    print("WAV2VEC2 DEEPFAKE DETECTION - THRESHOLD EVALUATION")
     print("=" * 60)
 
     print(
         f"Device: {DEVICE}"
     )
 
-    # --------------------------------------------------------
-    # Check model
-    # --------------------------------------------------------
-
-    if not MODEL_PATH.exists():
-
-        raise FileNotFoundError(
-            f"\nModel not found:\n"
-            f"{MODEL_PATH}\n\n"
-            f"Run train_wav2vec.py first."
-        )
-
-    # --------------------------------------------------------
-    # Load processor
-    # --------------------------------------------------------
-
-    print()
     print(
-        "Loading Wav2Vec2 processor..."
-    )
-
-    processor = Wav2Vec2Processor.from_pretrained(
-        "facebook/wav2vec2-base"
+        f"Classification threshold: "
+        f"{CLASSIFICATION_THRESHOLD:.2f}"
     )
 
     # --------------------------------------------------------
-    # Load encoder
+    # Load testing embeddings
     # --------------------------------------------------------
 
-    print(
-        "Loading Wav2Vec2 encoder..."
-    )
-
-    encoder = Wav2Vec2Model.from_pretrained(
-        "facebook/wav2vec2-base"
-    )
-
-    encoder = encoder.to(DEVICE)
-
-    encoder.eval()
-
-    for parameter in encoder.parameters():
-        parameter.requires_grad = False
-
-    print(
-        "Wav2Vec2 encoder loaded."
-    )
-
-    # --------------------------------------------------------
-    # Load testing dataset
-    # --------------------------------------------------------
-
-    print()
-    print(
-        "Loading testing dataset..."
-    )
-
-    test_dataset = FakeRealDataset(
-        "testing"
+    embeddings, labels = (
+        load_testing_embeddings()
     )
 
     print()
     print(
-        f"Testing samples: "
-        f"{len(test_dataset)}"
+        f"Test samples: "
+        f"{len(labels)}"
     )
 
     # --------------------------------------------------------
-    # Extract/load embeddings
+    # Load classifier
     # --------------------------------------------------------
 
-    test_embeddings, test_labels = (
-        extract_test_embeddings(
-            test_dataset,
-            processor,
-            encoder
-        )
-    )
-
-    print()
-    print(
-        "Testing embedding shape:",
-        test_embeddings.shape
-    )
-
-    # --------------------------------------------------------
-    # Create classifier
-    # --------------------------------------------------------
-
-    print()
-    print(
-        "Creating classifier..."
-    )
-
-    model = EmbeddingClassifier()
-
-    model = model.to(DEVICE)
-
-    # --------------------------------------------------------
-    # Load trained classifier
-    # --------------------------------------------------------
-
-    print(
-        "Loading trained classifier..."
-    )
-
-    state_dict = torch.load(
-        MODEL_PATH,
-        map_location=DEVICE
-    )
-
-    model.load_state_dict(
-        state_dict
-    )
-
-    model.eval()
-
-    print(
-        "Model loaded successfully."
-    )
-
-    # --------------------------------------------------------
-    # DataLoader
-    # --------------------------------------------------------
-
-    test_data = TensorDataset(
-        test_embeddings,
-        test_labels
-    )
-
-    test_loader = DataLoader(
-        test_data,
-        batch_size=BATCH_SIZE,
-        shuffle=False
-    )
+    classifier = load_classifier()
 
     # --------------------------------------------------------
     # Predictions
     # --------------------------------------------------------
 
-    print()
-    print(
-        "Running predictions..."
+    (
+        all_predictions,
+        all_labels,
+        all_fake_probabilities
+    ) = run_predictions(
+        embeddings,
+        labels,
+        classifier
     )
-
-    all_predictions = []
-    all_labels = []
-
-    with torch.no_grad():
-
-        for batch_index, (
-            embeddings,
-            labels
-        ) in enumerate(
-            test_loader,
-            start=1
-        ):
-
-            embeddings = embeddings.to(
-                DEVICE
-            )
-
-            outputs = model(
-                embeddings
-            )
-
-            predictions = torch.argmax(
-                outputs,
-                dim=1
-            )
-
-            all_predictions.extend(
-                predictions.cpu().numpy()
-            )
-
-            all_labels.extend(
-                labels.numpy()
-            )
-
-            if batch_index % 20 == 0:
-
-                print(
-                    f"Processed batch "
-                    f"{batch_index}/"
-                    f"{len(test_loader)}"
-                )
 
     # --------------------------------------------------------
     # Metrics
@@ -465,7 +332,10 @@ def main():
     report = classification_report(
         all_labels,
         all_predictions,
-        target_names=["REAL", "FAKE"],
+        target_names=[
+            "REAL",
+            "FAKE"
+        ],
         zero_division=0
     )
 
@@ -474,29 +344,38 @@ def main():
     # --------------------------------------------------------
 
     print()
-    print()
     print("=" * 60)
-    print("WAV2VEC2 EVALUATION RESULTS")
+    print("WAV2VEC2 THRESHOLD EVALUATION RESULTS")
     print("=" * 60)
 
     print(
-        f"Test samples : {len(all_labels)}"
+        f"Test samples : "
+        f"{len(all_labels)}"
     )
 
     print(
-        f"Accuracy     : {accuracy * 100:.2f}%"
+        f"Threshold    : "
+        f"{CLASSIFICATION_THRESHOLD:.2f}"
     )
 
     print(
-        f"Precision    : {precision * 100:.2f}%"
+        f"Accuracy     : "
+        f"{accuracy * 100:.2f}%"
     )
 
     print(
-        f"Recall       : {recall * 100:.2f}%"
+        f"Precision    : "
+        f"{precision * 100:.2f}%"
     )
 
     print(
-        f"F1 Score     : {f1 * 100:.2f}%"
+        f"Recall       : "
+        f"{recall * 100:.2f}%"
+    )
+
+    print(
+        f"F1 Score     : "
+        f"{f1 * 100:.2f}%"
     )
 
     # --------------------------------------------------------
@@ -504,30 +383,25 @@ def main():
     # --------------------------------------------------------
 
     print()
-    print(
-        "CONFUSION MATRIX"
-    )
-
-    print("-" * 40)
-
+    print("CONFUSION MATRIX")
+    print("----------------------------------------")
     print(
         "                 Predicted"
     )
-
     print(
         "                 REAL    FAKE"
     )
 
     print(
-        f"Actual REAL      "
-        f"{matrix[0][0]:6d}"
-        f"{matrix[0][1]:8d}"
+        f"Actual REAL     "
+        f"{matrix[0, 0]:6d}"
+        f"{matrix[0, 1]:9d}"
     )
 
     print(
-        f"Actual FAKE      "
-        f"{matrix[1][0]:6d}"
-        f"{matrix[1][1]:8d}"
+        f"Actual FAKE     "
+        f"{matrix[1, 0]:6d}"
+        f"{matrix[1, 1]:9d}"
     )
 
     # --------------------------------------------------------
@@ -538,37 +412,60 @@ def main():
     print(
         "CLASSIFICATION REPORT"
     )
+    print(
+        "------------------------------------------------------------"
+    )
 
-    print("-" * 60)
-
-    print(report)
+    print(
+        report
+    )
 
     # --------------------------------------------------------
-    # Interpretation
+    # Probability summary
     # --------------------------------------------------------
 
-    print("=" * 60)
-    print("INTERPRETATION")
-    print("=" * 60)
+    fake_probabilities = torch.tensor(
+        all_fake_probabilities
+    )
 
-    print("REAL = 0")
-    print("FAKE = 1")
+    print(
+        "FAKE PROBABILITY SUMMARY"
+    )
+    print(
+        "------------------------------------------------------------"
+    )
+
+    print(
+        f"Minimum fake probability: "
+        f"{fake_probabilities.min().item():.4f}"
+    )
+
+    print(
+        f"Maximum fake probability: "
+        f"{fake_probabilities.max().item():.4f}"
+    )
+
+    print(
+        f"Mean fake probability: "
+        f"{fake_probabilities.mean().item():.4f}"
+    )
+
     print()
-
     print(
-        "The metrics above are calculated on "
-        "the separate testing split."
+        "REAL = 0"
     )
 
     print(
-        "Fake precision/recall/F1 use FAKE "
-        "as the positive class."
+        "FAKE = 1"
     )
 
+    print(
+        "The threshold was selected using the validation split "
+        "and evaluated here on the separate testing split."
+    )
 
-# ============================================================
-# ENTRY POINT
-# ============================================================
+    print("=" * 60)
+
 
 if __name__ == "__main__":
     main()
