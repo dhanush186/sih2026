@@ -1,0 +1,6 @@
+Security Engineer/backend/logs/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
