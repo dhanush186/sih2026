@@ -1,36 +1,79 @@
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    background-color: #f4f6f8;
-}
+/* =========================================================
+   ALERTS PAGE
+   ========================================================= */
 
-header {
-    padding: 20px;
-    text-align: center;
-    background-color: #222;
-    color: white;
-}
-
-nav {
-    padding: 15px;
-    text-align: center;
-    background-color: white;
-}
-
-nav a {
-    margin: 0 15px;
-    text-decoration: none;
-    color: #333;
-    font-weight: bold;
-}
-
-main {
-    padding: 30px;
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .alert {
-    background-color: white;
-    padding: 20px;
-    margin-bottom: 20px;
-    border-radius: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 22px;
+  border-left: 3px solid var(--warn);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.alert.alert-critical {
+  border-left-color: var(--danger);
+}
+
+.alert.alert-high {
+  border-left-color: var(--danger);
+}
+
+.alert-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--danger);
+}
+
+.alert-body {
+  flex: 1;
+}
+
+.alert-body h3 {
+  font-size: 15.5px;
+  margin-bottom: 6px;
+}
+
+.alert-body p {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  margin: 0;
+  padding: 2px 0;
+  color: var(--text-dim);
+}
+
+.alert-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 8px;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.alert-dismiss:hover {
+  color: var(--text);
+  background: var(--panel-raised);
+  transform: none;
+  box-shadow: none;
+}
+
+.alert.is-leaving {
+  opacity: 0;
+  transform: translateX(12px);
+}
+
+.alert-empty {
+  text-align: center;
+  padding: 40px 0;
 }
