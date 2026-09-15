@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Partial client-side mitigation (checklist #18 Add security headers).
+       Real security headers (HSTS, X-Frame-Options, X-Content-Type-Options,
+       a stricter CSP) must still be set by the server/CDN that serves this
+       site — a <meta> tag cannot set most of them. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'self' http://localhost:8000 https:; base-uri 'self'; frame-ancestors 'none'">
+  <title>Analysis History</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/history.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="header-text">
+        <h1>Voice Deepfake Detection</h1>
+        <p>Analysis History</p>
+      </div>
+    </div>
+  </header>
+
+  <nav class="site-nav" aria-label="Primary">
+    <div class="nav-inner">
+      <a href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h3l2-7 4 14 3-10 2 3h4"/></svg>
+        Voice Analysis
+      </a>
+      <a href="dashboard.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="history.html" class="active" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        History
+      </a>
+      <a href="alerts.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        Alerts
+      </a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="history-head">
+      <h2>Analysis history</h2>
+      <input type="search" id="historySearch" placeholder="Filter by file name…" aria-label="Filter history by file name">
+    </div>
+
+    <div class="table-wrap panel">
+      <table id="historyTable">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>AI probability</th>
+            <th>Risk score</th>
+            <th>Risk level</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">voice_sample_01.wav</td>
+            <td class="mono">87%</td>
+            <td class="mono">78/100</td>
+            <td><span class="badge badge-high">HIGH</span></td>
+          </tr>
+          <tr>
+            <td class="mono">voice_sample_02.wav</td>
+            <td class="mono">21%</td>
+            <td class="mono">18/100</td>
+            <td><span class="badge badge-low">LOW</span></td>
+          </tr>
+          <tr>
+            <td class="mono">voice_sample_03.wav</td>
+            <td class="mono">94%</td>
+            <td class="mono">91/100</td>
+            <td><span class="badge badge-critical">CRITICAL</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="table-empty" id="tableEmpty" hidden>No recordings match that search.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>Voice Deepfake Detection System</p>
+    <p>SIH 2026 Project</p>
+  </footer>
+
+  <script src="js/history.js" defer></script>
+
+</body>
+</html>
