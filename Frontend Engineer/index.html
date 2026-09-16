@@ -1,100 +1,244 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <!-- Partial client-side mitigation (checklist #18 Add security headers).
        Real security headers (HSTS, X-Frame-Options, X-Content-Type-Options,
        a stricter CSP) must still be set by the server/CDN that serves this
        site — a <meta> tag cannot set most of them. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'self' http://localhost:8000 https:; base-uri 'self'; frame-ancestors 'none'">
+
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'self' http://localhost:8000 http://127.0.0.1:8000 http://localhost:8001 http://127.0.0.1:8001 http://192.168.14.108:8001 https:; base-uri 'self'; frame-ancestors 'none'">
   <title>Voice Deepfake Detection</title>
 
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
+
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+
 
   <link rel="stylesheet" href="css/base.css">
+
   <link rel="stylesheet" href="css/style.css">
+
 </head>
+
+
 <body>
 
+
   <header class="site-header">
+
     <div class="header-inner">
-      <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-      <div class="header-text">
-        <h1>Voice Deepfake Detection</h1>
-        <p>AI-Powered Voice Security System</p>
+
+      <div class="brand-mark" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
       </div>
+
+      <div class="header-text">
+
+        <h1>Voice Deepfake Detection</h1>
+
+        <p>AI-Powered Voice Security System</p>
+
+      </div>
+
     </div>
+
   </header>
 
+
   <nav class="site-nav" aria-label="Primary">
+
     <div class="nav-inner">
+
       <a href="index.html" class="active" aria-current="page">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h3l2-7 4 14 3-10 2 3h4"/></svg>
+
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 12h3l2-7 4 14 3-10 2 3h4" />
+        </svg>
+
         Voice Analysis
+
       </a>
+
+
       <a href="dashboard.html">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <rect x="3" y="3" width="7" height="9" rx="1" />
+
+          <rect x="14" y="3" width="7" height="5" rx="1" />
+
+          <rect x="14" y="12" width="7" height="9" rx="1" />
+
+          <rect x="3" y="16" width="7" height="5" rx="1" />
+
+        </svg>
+
         Dashboard
+
       </a>
+
+
       <a href="history.html">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="9" />
+
+          <path d="M12 7v5l3 3" />
+
+        </svg>
+
         History
+
       </a>
+
+
       <a href="alerts.html">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+
+          <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+
+        </svg>
+
         Alerts
+
       </a>
+
     </div>
+
   </nav>
+
 
   <main>
 
+
     <section class="hero">
+
       <div class="hero-copy">
+
         <h2>Analyze a voice recording</h2>
+
         <p>
           Upload a voice recording to check for
           possible AI-generated or manipulated audio.
         </p>
+
       </div>
+
+
       <div class="hero-wave" aria-hidden="true">
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
+
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+
       </div>
+
     </section>
+
 
     <section class="upload-card panel">
+
       <h3>Voice recording</h3>
-      <p>Select an audio file from your computer, or drag it in below.</p>
+
+      <p>
+        Select a WAV audio file from your computer,
+        or drag it in below.
+      </p>
+
 
       <label for="audioFile" class="dropzone" id="dropzone">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="dropzone-icon">
-          <path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M4 16v2a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-2"/>
+
+
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+          stroke-linejoin="round" class="dropzone-icon">
+
+          <path d="M12 3v12" />
+
+          <path d="M7 8l5-5 5 5" />
+
+          <path d="M4 16v2a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-2" />
+
         </svg>
-        <span class="dropzone-title" id="dropzoneTitle">Drop an audio file here, or click to browse</span>
-        <span class="dropzone-sub" id="dropzoneSub">WAV, MP3, M4A and other common audio formats</span>
-        <input type="file" id="audioFile" accept="audio/*">
+
+
+        <span class="dropzone-title" id="dropzoneTitle">
+          Drop a WAV file here, or click to browse
+        </span>
+
+
+        <span class="dropzone-sub" id="dropzoneSub">
+          WAV audio files only (.wav)
+        </span>
+
+
+        <input type="file" id="audioFile" accept=".wav,audio/wav,audio/x-wav">
+
+
       </label>
 
-      <button id="analyzeButton" disabled>Analyze voice</button>
+
+      <button id="analyzeButton" disabled>
+        Analyze voice
+      </button>
+
+
     </section>
+
 
     <section id="result" class="result-card panel" aria-live="polite"></section>
 
+
   </main>
 
+
   <footer class="site-footer">
+
     <p>Voice Deepfake Detection System</p>
+
     <p>SIH 2026 Project</p>
+
   </footer>
 
+
   <script src="js/config.js" defer></script>
+
   <script src="js/ui.js" defer></script>
+
   <script src="js/api.js" defer></script>
 
+
 </body>
+
 </html>

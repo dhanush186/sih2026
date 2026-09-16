@@ -10,10 +10,11 @@ const dropzoneSub = document.getElementById("dropzoneSub");
 // don't enforce it, so the real check happens here before anything is sent.
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
 const ALLOWED_AUDIO_TYPES = [
-  "audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3",
-  "audio/mp4", "audio/x-m4a", "audio/aac", "audio/ogg", "audio/webm",
+  "audio/wav",
+  "audio/x-wav"
 ];
-const ALLOWED_EXTENSIONS = [".wav", ".mp3", ".m4a", ".aac", ".ogg", ".webm"];
+
+const ALLOWED_EXTENSIONS = [".wav"];
 
 let isAnalyzing = false;
 
@@ -100,43 +101,43 @@ dropzone.addEventListener("drop", function (event) {
 
 analyzeButton.addEventListener("click", async function () {
 
-    // Guard against double submits / button-spamming while a request
-    // is already in flight (checklist #12 — lightweight bot/abuse guard;
-    // real rate limiting still has to live on the backend, see #11/#12).
-    if (isAnalyzing) {
-        return;
-    }
+  // Guard against double submits / button-spamming while a request
+  // is already in flight (checklist #12 — lightweight bot/abuse guard;
+  // real rate limiting still has to live on the backend, see #11/#12).
+  if (isAnalyzing) {
+    return;
+  }
 
-    if (audioFile.files.length === 0) {
+  if (audioFile.files.length === 0) {
 
-        result.innerHTML = `
+    result.innerHTML = `
             <div class="result-inner">
                 <h3>Please select an audio file</h3>
                 <p>Select a voice recording before starting the analysis.</p>
             </div>
         `;
 
-        return;
-    }
+    return;
+  }
 
 
-    const selectedFile = audioFile.files[0];
+  const selectedFile = audioFile.files[0];
 
-    const validationError = validateSelectedFile(selectedFile);
-    if (validationError) {
-        result.innerHTML = `
+  const validationError = validateSelectedFile(selectedFile);
+  if (validationError) {
+    result.innerHTML = `
             <div class="result-inner">
                 <h3>File not accepted</h3>
                 <p>${escapeHtml(validationError)}</p>
             </div>
         `;
-        return;
-    }
+    return;
+  }
 
-    isAnalyzing = true;
-    analyzeButton.disabled = true;
+  isAnalyzing = true;
+  analyzeButton.disabled = true;
 
-    result.innerHTML = `
+  result.innerHTML = `
         <div class="result-inner">
             <div class="result-status">
                 <span class="scan-icon" aria-hidden="true"></span>
@@ -147,14 +148,14 @@ analyzeButton.addEventListener("click", async function () {
     `;
 
 
-    const formData = new FormData();
+  const formData = new FormData();
 
-    formData.append("audio", selectedFile);
+  formData.append("file", selectedFile);
 
 
-    try {
+  try {
 
-        result.innerHTML = `
+    result.innerHTML = `
             <div class="result-inner">
                 <div class="result-status">
                     <span class="scan-icon" aria-hidden="true"></span>
@@ -165,60 +166,63 @@ analyzeButton.addEventListener("click", async function () {
         `;
 
 
-        /*
-         * REAL BACKEND REQUEST WILL BE ADDED HERE
-         *
-         * Example:
-         *
-         * const response = await fetch(
-         *     API_BASE_URL + "/analyze",
-         *     {
-         *         method: "POST",
-         *         body: formData
-         *     }
-         * );
-         *
-         * const rawData = await response.json();
-         * const data = pickResultFields(rawData);
-         *
-         * API_BASE_URL should point at an https:// origin in production
-         * (checklist #19 Force HTTPS) — it is only http://localhost here
-         * because there is no backend to talk to yet.
-         */
+    /*
+     * REAL BACKEND REQUEST WILL BE ADDED HERE
+     *
+     * Example:
+     *
+     * const response = await fetch(
+     *     API_BASE_URL + "/analyze",
+     *     {
+     *         method: "POST",
+     *         body: formData
+     *     }
+     * );
+     *
+     * const rawData = await response.json();
+     * const data = pickResultFields(rawData);
+     *
+     * API_BASE_URL should point at an https:// origin in production
+     * (checklist #19 Force HTTPS) — it is only http://localhost here
+     * because there is no backend to talk to yet.
+     */
 
 
-        // Temporary mock result for frontend testing
-
-        await new Promise(function (resolve) {
-
-            setTimeout(resolve, 2000);
-
-        });
-
-
-        const mockResult = {
-
-            fileName: selectedFile.name,
-
-            aiProbability: 87,
-
-            speakerMatch: 92,
-
-            riskScore: 78,
-
-            riskLevel: "HIGH"
-
-        };
+    const response = await fetch(
+      API_BASE_URL + "/analyze",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
 
 
-        displayResult(pickResultFields(mockResult));
+    if (!response.ok) {
+
+      throw new Error(
+        "Backend returned HTTP " + response.status
+      );
+
+    }
 
 
-    } catch (error) {
+    const rawData = await response.json();
 
-        console.error(error);
 
-        result.innerHTML = `
+    console.log("Backend response:", rawData);
+
+
+    const data = pickResultFields(rawData);
+
+
+    displayResult(data);
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    result.innerHTML = `
             <div class="result-inner">
                 <h3>Analysis failed</h3>
                 <p>Something went wrong while analyzing the voice.</p>
@@ -226,12 +230,12 @@ analyzeButton.addEventListener("click", async function () {
             </div>
         `;
 
-    } finally {
+  } finally {
 
-        isAnalyzing = false;
-        analyzeButton.disabled = audioFile.files.length === 0;
+    isAnalyzing = false;
+    analyzeButton.disabled = audioFile.files.length === 0;
 
-    }
+  }
 
 });
 
@@ -243,45 +247,275 @@ analyzeButton.addEventListener("click", async function () {
  * ever reaches displayResult() — never render an API payload directly.
  */
 function pickResultFields(raw) {
-  const allowedRiskLevels = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
-  const riskLevel = allowedRiskLevels.includes(String(raw.riskLevel).toUpperCase())
-    ? String(raw.riskLevel).toUpperCase()
-    : "LOW";
+
+  const prediction = raw.ml_prediction || {};
+  const audioAnalysis = raw.audio_analysis || {};
+  const riskAssessment = raw.risk_assessment || {};
+
+  const allowedRiskLevels = [
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "CRITICAL"
+  ];
+
+  const riskLevelValue = String(
+    riskAssessment.risk_level ??
+    prediction.risk_level ??
+    "UNKNOWN"
+  ).toUpperCase();
+
+  const riskLevel = allowedRiskLevels.includes(riskLevelValue)
+    ? riskLevelValue
+    : "UNKNOWN";
+
+
+  let riskFactors = riskAssessment.risk_factors ?? [];
+
+  if (!Array.isArray(riskFactors)) {
+    riskFactors = [riskFactors];
+  }
+
+
+  let recommendation = riskAssessment.recommendation ?? [];
+
+  if (!Array.isArray(recommendation)) {
+    recommendation = [recommendation];
+  }
+
 
   return {
-    fileName: String(raw.fileName ?? "").slice(0, 255),
-    aiProbability: Math.min(Math.max(Number(raw.aiProbability) || 0, 0), 100),
-    speakerMatch: Math.min(Math.max(Number(raw.speakerMatch) || 0, 0), 100),
-    riskScore: Math.min(Math.max(Number(raw.riskScore) || 0, 0), 100),
+
+    fileName: String(
+      raw.filename ?? ""
+    ).slice(0, 255),
+
+
+    duration: audioAnalysis.duration_seconds ?? "Not provided",
+
+
+    sampleRate: audioAnalysis.sample_rate ?? "Not provided",
+
+
+    detection: String(
+      prediction.label ?? "UNKNOWN"
+    ).toUpperCase(),
+
+
+    confidence: Math.min(
+      Math.max(
+        Number(riskAssessment.confidence) || 0,
+        0
+      ),
+      100
+    ),
+
+
+    fakeProbability: Math.min(
+      Math.max(
+        (Number(prediction.fake_probability) || 0) * 100,
+        0
+      ),
+      100
+    ),
+
+
+    realProbability: Math.min(
+      Math.max(
+        (Number(prediction.real_probability) || 0) * 100,
+        0
+      ),
+      100
+    ),
+
+
+    riskScore: Math.min(
+      Math.max(
+        Number(riskAssessment.risk_score) || 0,
+        0
+      ),
+      100
+    ),
+
+
     riskLevel: riskLevel,
+
+
+    riskFactors: riskFactors
+      .map(function (factor) {
+        return String(factor).slice(0, 500);
+      })
+      .slice(0, 10),
+
+
+    recommendation: recommendation
+      .map(function (item) {
+        return String(item).slice(0, 1000);
+      })
+      .slice(0, 10),
+
+
+    alert: String(
+      riskAssessment.alert ?? ""
+    ).slice(0, 1000),
+
+
+    securityDecision: String(
+      riskAssessment.security_decision ?? "UNKNOWN"
+    ).slice(0, 100)
+
   };
+
 }
 
 function displayResult(data) {
 
-    result.innerHTML = `
+  const riskFactorsHTML = data.riskFactors.length > 0
+    ? data.riskFactors
+      .map(function (factor) {
+        return `
+                    <p class="result-alert">
+                        ⚠️ ${escapeHtml(factor)}
+                    </p>
+                `;
+      })
+      .join("")
+    : "<p>No risk factors reported.</p>";
+
+
+  const recommendationHTML = data.recommendation.length > 0
+    ? data.recommendation
+      .map(function (item) {
+        return `
+                    <p>
+                        ${escapeHtml(item)}
+                    </p>
+                `;
+      })
+      .join("")
+    : "<p>No recommendation provided.</p>";
+
+
+  result.innerHTML = `
+
         <div class="result-inner">
+
             <div class="result-status">
-                <h3>Analysis result</h3>
-                <span class="${riskBadgeClass(data.riskLevel)}">${escapeHtml(data.riskLevel)} RISK</span>
-            </div>
-            <p class="result-file">${escapeHtml(data.fileName)}</p>
 
-            <div class="result-gauges">
-                <div>${gaugeMarkup("gaugeAiProbability", "AI probability")}</div>
-                <div>${gaugeMarkup("gaugeSpeakerMatch", "Speaker match")}</div>
-            </div>
+                <h3>AI Voice Analysis</h3>
 
-            <div class="meters">
-                ${meterRowMarkup("Risk score", data.riskScore, 100, "/100")}
+                <span class="${riskBadgeClass(data.riskLevel)}">
+                    ${escapeHtml(data.riskLevel)}
+                </span>
+
             </div>
 
-            <p class="result-footnote">⚠ This is currently a mock result — live analysis will replace it once the backend is connected.</p>
+
+            <p class="result-file">
+                <strong>File:</strong>
+                ${escapeHtml(data.fileName)}
+            </p>
+
+
+            <div class="result-section">
+
+                <h4>Audio</h4>
+
+                <p>
+                    <strong>Duration:</strong>
+                    ${escapeHtml(String(data.duration))} seconds
+                </p>
+
+                <p>
+                    <strong>Sample Rate:</strong>
+                    ${escapeHtml(String(data.sampleRate))} Hz
+                </p>
+
+            </div>
+
+
+            <div class="result-section">
+
+                <h4>Detection</h4>
+
+                <p>
+                    <strong>Result:</strong>
+                    ${escapeHtml(data.detection)}
+                </p>
+
+                <p>
+                    <strong>Fake Probability:</strong>
+                    ${data.fakeProbability.toFixed(2)}%
+                </p>
+
+                <p>
+                    <strong>Confidence:</strong>
+                    ${data.confidence.toFixed(2)}%
+                </p>
+
+            </div>
+
+
+            <div class="result-section">
+
+                <h4>Risk</h4>
+
+                <p>
+                    <strong>Risk Score:</strong>
+                    ${data.riskScore.toFixed(2)}/100
+                </p>
+
+                <p>
+                    <strong>Risk Level:</strong>
+                    ${escapeHtml(data.riskLevel)}
+                </p>
+
+            </div>
+
+
+            <div class="result-section">
+
+                <h4>Risk Factors</h4>
+
+                ${riskFactorsHTML}
+
+            </div>
+
+
+            <div class="result-section">
+
+                <h4>Alert</h4>
+
+                <p>
+                    ${escapeHtml(data.alert || "No alert reported.")}
+                </p>
+
+            </div>
+
+
+            <div class="result-section">
+
+                <h4>Security Decision</h4>
+
+                <p>
+                    <strong>
+                        ${escapeHtml(data.securityDecision)}
+                    </strong>
+                </p>
+
+            </div>
+
+
+            <div class="result-section recommendation">
+
+                <h4>Recommendation</h4>
+
+                ${recommendationHTML}
+
+            </div>
+
         </div>
-    `;
 
-    animateGauge("gaugeAiProbability", data.aiProbability);
-    animateGauge("gaugeSpeakerMatch", data.speakerMatch);
-    animateMeters(result);
+    `;
 
 }
