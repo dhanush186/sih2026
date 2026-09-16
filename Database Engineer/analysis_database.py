@@ -2,14 +2,23 @@ import os
 import json
 import mysql.connector
 from dotenv import load_dotenv
+from sqlalchemy.engine import make_url
 
 load_dotenv()
 
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not configured")
+
+_db_url = make_url(DATABASE_URL)
+
 DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "localhost"),
-    "user": os.getenv("DB_USER", "root"),
-    "password": os.getenv("DB_PASSWORD", ""),
-    "database": os.getenv("DB_NAME", "voice_security"),
+    "host": _db_url.host or "localhost",
+    "port": _db_url.port or 3306,
+    "user": _db_url.username,
+    "password": _db_url.password,
+    "database": _db_url.database,
 }
 
 
@@ -75,6 +84,42 @@ def insert_analysis(
     return analysis_id
 
 
+def _decode_json_fields(result):
+    """
+    Decode JSON columns only when the database connector
+    returns them as strings.
+
+    MySQL connectors may already return JSON columns as
+    Python lists/dictionaries, so calling json.loads()
+    unconditionally can cause JSONDecodeError.
+    """
+
+    if not result:
+        return result
+
+    json_fields = [
+        "mfcc_shape",
+        "spectrogram_shape",
+        "speaker_verification",
+        "risk_factors",
+        "recommendation",
+        "alerts",
+    ]
+
+    for field in json_fields:
+        if field in result:
+            value = result[field]
+
+            if isinstance(value, str):
+                try:
+                    result[field] = json.loads(value)
+                except json.JSONDecodeError:
+                    # Keep the original value if it is not valid JSON.
+                    result[field] = value
+
+    return result
+
+
 def get_analysis(analysis_id):
     connection = get_connection()
     cursor = connection.cursor(dictionary=True)
@@ -108,7 +153,9 @@ def get_analysis(analysis_id):
             risk_factors,
             recommendation,
             alert,
-            security_decision
+            security_decision,
+            alerts,
+            audio_duration
         FROM analysis_results
         WHERE id = %s
     """
@@ -119,18 +166,7 @@ def get_analysis(analysis_id):
     cursor.close()
     connection.close()
 
-    if result:
-        for field in [
-            "mfcc_shape",
-            "spectrogram_shape",
-            "speaker_verification",
-            "risk_factors",
-            "recommendation",
-        ]:
-            if result[field]:
-                result[field] = json.loads(result[field])
-
-    return result
+    return _decode_json_fields(result)
 
 
 def get_all_analyses():
@@ -166,7 +202,9 @@ def get_all_analyses():
             risk_factors,
             recommendation,
             alert,
-            security_decision
+            security_decision,
+            alerts,
+            audio_duration
         FROM analysis_results
         ORDER BY timestamp DESC
     """
@@ -178,15 +216,7 @@ def get_all_analyses():
     connection.close()
 
     for result in results:
-        for field in [
-            "mfcc_shape",
-            "spectrogram_shape",
-            "speaker_verification",
-            "risk_factors",
-            "recommendation",
-        ]:
-            if result[field]:
-                result[field] = json.loads(result[field])
+        _decode_json_fields(result)
 
     return results
 
@@ -197,13 +227,45 @@ def insert_analysis_result(
     ml_prediction,
     risk_assessment,
 ):
+    """
+    Save the complete /analyze response into MySQL.
+
+    Expected structure:
+
+    audio_analysis:
+        audio_path
+        sample_rate
+        duration_seconds
+        mfcc_shape
+        spectrogram_shape
+        prosody
+        speaker_verification
+
+    ml_prediction:
+        prediction
+        label
+        real_probability
+        fake_probability
+        risk_level
+
+    risk_assessment:
+        risk_score
+        risk_level
+        confidence
+        risk_factors
+        recommendation
+        alert
+        security_decision
+    """
+
     connection = get_connection()
     cursor = connection.cursor()
 
-    prosody = audio_analysis.get("prosody") or {}
+    prosody = audio_analysis.get("prosody", {})
 
     query = """
-        INSERT INTO analysis_results (
+        INSERT INTO analysis_results
+        (
             filename,
             audio_path,
             sample_rate,
@@ -231,7 +293,8 @@ def insert_analysis_result(
             alert,
             security_decision
         )
-        VALUES (
+        VALUES
+        (
             %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s,
@@ -241,6 +304,7 @@ def insert_analysis_result(
 
     values = (
         filename,
+
         audio_analysis.get("audio_path"),
         audio_analysis.get("sample_rate"),
         audio_analysis.get("duration_seconds"),
@@ -257,6 +321,7 @@ def insert_analysis_result(
         prosody.get("pitch_std"),
         prosody.get("pitch_min"),
         prosody.get("pitch_max"),
+
         prosody.get("energy_mean"),
         prosody.get("energy_std"),
         prosody.get("speaking_rate"),

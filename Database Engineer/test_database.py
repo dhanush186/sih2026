@@ -1,6 +1,6 @@
 import json
 
-from database import insert_analysis_result, get_analysis
+from analysis_database import insert_analysis_result, get_analysis
 
 
 sample_result = {
