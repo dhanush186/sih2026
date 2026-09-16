@@ -1,6 +1,18 @@
+ 
 from fastapi import FastAPI, UploadFile, File
 from typing import Dict, Any
+import os
 
+from backend.audio.pipeline import run_pipeline
+from backend.risk_engine.risk_engine import calculate_risk
+from importlib.machinery import SourceFileLoader
+
+ml_model = SourceFileLoader(
+    "predict",
+    "Data Engineer/ml/predict.py"
+).load_module()
+
+processor, encoder, classifier = ml_model.load_models()
 
 app = FastAPI(
     title="AI Voice Deepfake Detection API",
@@ -65,23 +77,42 @@ def mock_risk_engine(
 # -----------------------------
 @app.post("/analyze")
 async def analyze_audio(file: UploadFile = File(...)):
+    # Save uploaded audio
+    upload_dir = "backend/uploads"
+    os.makedirs(upload_dir, exist_ok=True)
 
-    # Save/read filename for now
-    filename = file.filename
+    file_path = os.path.join(upload_dir, file.filename)
 
-    # Mock pipeline
-    audio_result = mock_audio_analysis(filename)
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
 
-    ml_result = mock_ml_prediction(filename)
+    # REAL audio analysis
+    audio_result = run_pipeline(
+        file_path,
+        save_features=True,
+    )
 
-    risk_result = mock_risk_engine(
-        audio_result,
-        ml_result
+    # REAL ML prediction
+    ml_result = ml_model.predict_audio(
+        file_path,
+        processor,
+        encoder,
+        classifier,
+    )
+
+    risk_result = calculate_risk(
+        ai_probability=ml_result["fake_probability"] * 100,
+        speaker_similarity=100,
+        prosody_anomaly=0,
+        caller_anomaly=0,
+        transaction_risk=0,
     )
 
     return {
-        "filename": filename,
+        "filename": file.filename,
         "audio_analysis": audio_result,
         "ml_prediction": ml_result,
-        "risk_assessment": risk_result
+        "risk_assessment": risk_result,
     }
+    
+   
