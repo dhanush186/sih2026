@@ -40,6 +40,8 @@ It combines multiple security signals, performs contextual risk analysis, monito
 
 \* Audit logging
 
+\* File/upload security validation
+
 \* Security testing
 
 
@@ -556,7 +558,153 @@ backend/logs/security\_events.jsonl
 
 
 
-\## 14. Testing
+\## 14. File/Upload Security
+
+
+
+File security validation is implemented in:
+
+
+
+```text
+
+backend/services/file\_security.py
+
+```
+
+
+
+The module validates uploaded files before they enter the AI/security pipeline.
+
+
+
+The following five security checks are implemented:
+
+
+
+\### 1. Invalid File Type Detection
+
+
+
+Only supported audio file extensions are accepted.
+
+
+
+Supported file types include:
+
+
+
+```text
+
+.wav
+
+.mp3
+
+.m4a
+
+.flac
+
+.ogg
+
+```
+
+
+
+\### 2. Suspicious Upload Detection
+
+
+
+The module detects suspicious uploads including:
+
+
+
+\* Missing file extensions
+
+\* Empty uploads
+
+\* Unsupported file types
+
+
+
+\### 3. Missing File Detection
+
+
+
+The system verifies that:
+
+
+
+\* The uploaded path exists
+
+\* The uploaded path represents a regular file
+
+
+
+\### 4. Oversized File Detection
+
+
+
+Files larger than the configured maximum size of \*\*25 MB\*\* are rejected.
+
+
+
+\### 5. Unsafe Filename Detection
+
+
+
+The system checks filenames for unsafe characters and path-traversal-related patterns.
+
+
+
+\### Combined Upload Validation
+
+
+
+The combined validation function is:
+
+
+
+```text
+
+validate\_upload()
+
+```
+
+
+
+It performs all five security checks and returns the overall upload security status, failed checks, and recommendation.
+
+
+
+For a valid upload:
+
+
+
+```text
+
+ALLOW\_UPLOAD
+
+```
+
+
+
+For an invalid or suspicious upload:
+
+
+
+```text
+
+REJECT\_UPLOAD
+
+```
+
+
+
+This provides a security validation layer before uploaded audio is processed by the remaining AI and security components.
+
+
+
+\## 15. Testing
 
 
 
@@ -572,7 +720,7 @@ backend/tests/test\_risk\_security.py
 
 
 
-The test suite covers:
+The Risk/Security test suite covers:
 
 
 
@@ -600,23 +748,81 @@ The test suite covers:
 
 
 
-\### Test Result
+\### File Security Tests
+
+
+
+The file-security test suite is implemented in:
 
 
 
 ```text
 
-11 passed in 0.46s
+backend/tests/test\_file\_security.py
 
 ```
 
 
 
-All 11 security tests passed successfully.
+It covers:
 
 
 
-\## 15. Module Structure
+1\. Valid file validation
+
+2\. Invalid file type
+
+3\. Missing file
+
+4\. Oversized file
+
+5\. Unsafe filename
+
+6\. Suspicious empty upload
+
+7\. Suspicious unsupported upload
+
+8\. Combined upload rejection
+
+
+
+\### Complete Test Result
+
+
+
+The complete Security Engineer test suite contains:
+
+
+
+```text
+
+11 Risk/Security tests
+
+8 File Security tests
+
+19 tests total
+
+```
+
+
+
+Test execution result:
+
+
+
+```text
+
+19 passed in 0.32s
+
+```
+
+
+
+All 19 Security Engineer tests passed successfully.
+
+
+
+\## 16. Module Structure
 
 
 
@@ -646,6 +852,8 @@ Security Engineer/
 
 &#x20;   │   ├── contextual\_risk.py
 
+&#x20;   │   ├── file\_security.py
+
 &#x20;   │   ├── risk\_engine.py
 
 &#x20;   │   ├── risk\_monitor.py
@@ -656,13 +864,15 @@ Security Engineer/
 
 &#x20;   └── tests/
 
+&#x20;       ├── test\_file\_security.py
+
 &#x20;       └── test\_risk\_security.py
 
 ```
 
 
 
-\## 16. Member 6 Deliverable Status
+\## 17. Member 6 Deliverable Status
 
 
 
@@ -688,13 +898,19 @@ Security Engineer/
 
 | Audit Logging              | Completed |
 
+| File/Upload Security       | Completed |
+
 | Security Testing           | Completed |
 
-| 11 Security Tests          | Passed    |
+| 11 Risk/Security Tests     | Passed    |
+
+| 8 File Security Tests      | Passed    |
+
+| 19 Total Security Tests    | Passed    |
 
 
 
-\*\*Member 6 Risk/Security module: Completed and tested.\*\*
+\*\*Member 6 Risk/Security module: Completed, tested, and documented.\*\*
 
 
 
